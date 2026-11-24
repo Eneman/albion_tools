@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import ResourceSelector from '../components/ResourceSelector.jsx'
+import NumberInput from '../components/NumberInput.jsx'
 import MaterialsTable from '../components/MaterialsTable.jsx'
 import MissingList from '../components/MissingList.jsx'
 import { computeRequirements, formatNumber } from '../lib/calculate.js'
-import { RECIPES, REFINED_RESOURCES, makeId, parseId, resourceName } from '../data/resources'
+import { RECIPES, REFINED_RESOURCES, iconOf, makeId, parseId, resourceName } from '../data/resources'
 
 const STORAGE_KEY = 'albion-tools:refining:v1'
 
@@ -42,14 +43,21 @@ export default function RefiningTool() {
   const target = selectedId ? parseId(selectedId) : null
   const qty = /^\d+$/.test(quantity) ? parseInt(quantity, 10) : 0
 
+  // The target itself is crafted, not gathered: ignore any stale stored value
+  // for it so only the chain materials count as owned.
+  const materialPossessed = useMemo(() => {
+    if (!selectedId || possessed[selectedId] == null) return possessed
+    const { [selectedId]: _drop, ...rest } = possessed
+    return rest
+  }, [possessed, selectedId])
+
   const rows = useMemo(
-    () => (selectedId ? computeRequirements(selectedId, qty, possessed) : []),
-    [selectedId, qty, possessed],
+    () => (selectedId ? computeRequirements(selectedId, qty, materialPossessed) : []),
+    [selectedId, qty, materialPossessed],
   )
 
   const targetRow = rows.find((row) => row.id === selectedId)
   const toCraft = targetRow?.missing ?? 0
-  const ownedTarget = targetRow?.possessed ?? 0
   const hasOwned = Object.values(possessed).some((v) => v !== '' && v != null)
 
   // "1× T5 Brick = 3× T5 Stone + 1× T4 Brick"
@@ -77,16 +85,13 @@ export default function RefiningTool() {
             <label className="field-label" htmlFor="quantity-input">
               Quantity wanted
             </label>
-            <input
+            <NumberInput
               id="quantity-input"
-              className="text-input quantity-input"
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
+              className="quantity-input"
               placeholder={selectedId ? 'e.g. 100' : 'Select a resource'}
               disabled={!selectedId}
               value={quantity}
-              onChange={(e) => setQuantity(e.target.value.replace(/\D/g, ''))}
+              onChange={setQuantity}
             />
           </div>
         </div>
@@ -102,8 +107,8 @@ export default function RefiningTool() {
           <BrandGlyph />
           <p className="empty-title">No resource selected</p>
           <p className="empty-text">
-            Pick a refined resource above — T2 to T8 brick, plank, leather, cloth or metal — and
-            we will list every material in the chain.
+            Pick a refined resource above — T2 to T8 blocks, planks, leather, cloth or metal bars —
+            and we will list every material in the chain.
           </p>
         </div>
       ) : qty <= 0 ? (
@@ -131,13 +136,15 @@ export default function RefiningTool() {
             </div>
             <p className="summary">
               Crafting <span className="craft-count">{formatNumber(toCraft)}×</span>{' '}
+              <img
+                className="res-icon"
+                src={iconOf(selectedId)}
+                alt=""
+                aria-hidden="true"
+                width="22"
+                height="22"
+              />
               {resourceName(selectedId)}
-              {ownedTarget > 0 && (
-                <>
-                  {' '}
-                  — {formatNumber(qty)} wanted, {formatNumber(ownedTarget)} already owned
-                </>
-              )}
             </p>
             <MaterialsTable
               rows={rows}
@@ -151,7 +158,7 @@ export default function RefiningTool() {
             <div className="panel-head">
               <h2>Missing</h2>
             </div>
-            <MissingList rows={rows} targetId={selectedId} />
+            <MissingList rows={rows} />
           </section>
         </>
       )}

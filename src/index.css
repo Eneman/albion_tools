@@ -195,6 +195,13 @@ a {
   font-variant-numeric: tabular-nums;
 }
 
+.summary .res-icon {
+  width: 22px;
+  height: 22px;
+  margin-right: 7px;
+  vertical-align: -5px;
+}
+
 /* ---------- Form controls ---------- */
 .field-label {
   display: block;
@@ -234,13 +241,68 @@ a {
 
 .controls-grid {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
 
 .quantity-input {
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Number input with stepper arrows ---------- */
+.stepper {
+  position: relative;
+  display: block;
+}
+
+.stepper .text-input {
+  padding-right: 34px;
+  font-variant-numeric: tabular-nums;
+}
+
+.stepper-buttons {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  bottom: 1px;
+  display: flex;
+  flex-direction: column;
+  width: 26px;
+  border-left: 1px solid var(--border);
+  border-radius: 0 8px 8px 0;
+  overflow: hidden;
+}
+
+.stepper-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.04);
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.stepper-btn + .stepper-btn {
+  border-top: 1px solid var(--border);
+}
+
+.stepper-btn:hover:not(:disabled) {
+  background: rgba(216, 169, 78, 0.18);
+  color: var(--gold-bright);
+}
+
+.stepper-btn:active:not(:disabled) {
+  background: rgba(216, 169, 78, 0.32);
+}
+
+.stepper-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .recipe-hint {
@@ -356,12 +418,12 @@ a {
   color: var(--gold-bright);
 }
 
-.opt-dot {
+.opt-icon {
   flex: none;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.35);
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
 }
 
 .opt-tier {
@@ -449,14 +511,14 @@ a {
   white-space: nowrap;
 }
 
-.res-dot {
+.res-icon {
   display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: 24px;
+  height: 24px;
   margin-right: 9px;
-  border-radius: 50%;
+  border-radius: 4px;
   vertical-align: middle;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
 }
 
 .res-name {
@@ -484,7 +546,7 @@ a {
 }
 
 .num-input {
-  width: 96px;
+  width: 116px;
   padding: 8px 10px;
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -500,40 +562,38 @@ a {
   font-weight: 600;
 }
 
-/* ---------- Missing chips ---------- */
-.missing-chips {
+/* ---------- Missing list (raw materials only) ---------- */
+.missing-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.missing-item {
   display: flex;
-  flex-wrap: wrap;
-  gap: 9px;
-}
-
-.chip {
-  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 13px;
-  font-size: 0.9rem;
-  color: #f2b4a8;
-  background: var(--red-soft);
-  border: 1px solid rgba(224, 108, 90, 0.38);
-  border-radius: 999px;
+  gap: 11px;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--border-soft);
 }
 
-.chip .res-dot {
-  margin-right: 0;
-  width: 8px;
-  height: 8px;
+.missing-item:last-child {
+  border-bottom: none;
 }
 
-.chip-qty {
+.missing-item:first-child {
+  padding-top: 2px;
+}
+
+.missing-name {
+  font-weight: 600;
+}
+
+.missing-qty {
+  margin-left: auto;
+  color: var(--red);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-}
-
-.chip.is-target {
-  color: var(--gold-bright);
-  background: rgba(216, 169, 78, 0.12);
-  border-color: rgba(216, 169, 78, 0.42);
 }
 
 .all-good {

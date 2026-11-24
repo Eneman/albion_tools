@@ -6,18 +6,22 @@ GitHub Pages. The first tool is a **refining calculator**.
 ## Refining calculator
 
 - Drop-down with **type-to-filter autocomplete** over every refined resource
-  (T2–T8 × stone/wood/hide/cotton/ore → brick/plank/leather/cloth/metal).
+  (T2–T8 × stone/wood/hide/fiber/ore).
+- **Official in-game names and icons**: "T4 Travertine Block", "T8 Adamantium
+  Steel Bar", … tier first, as in game.
 - Enter the **quantity you want** to refine.
-- Shows the **full material chain**, including intermediate refined tiers.
+- Shows the **full material chain**, including intermediate refined tiers
+  (the output itself is not listed as a material).
 - Tick **what you already own** at every level — the table and the compact
-  **missing list update live**.
+  **missing list** update live. The missing list shows only the raw materials
+  you still have to gather (intermediate refined tiers are crafted from them).
 - Your inputs are persisted in `localStorage`.
 
 ### Recipes
 
 | Tier | Raw needed      | Previous refined |
 | ---- | --------------- | ---------------- |
-| T2   | 2× same-tier    | —                |
+| T2   | 1× same-tier    | —                |
 | T3   | 2× same-tier    | 1× T2 refined    |
 | T4   | 2× same-tier    | 1× T3 refined    |
 | T5   | 3× same-tier    | 1× T4 refined    |
@@ -51,12 +55,13 @@ user site (`<user>.github.io`) and under a project subpath
 
 ```
 src/
-  data/resources.js      # resource types, tiers, recipes, autocomplete
+  data/resources.js      # resource types, tiers, recipes, official names, autocomplete
   lib/calculate.js       # chain computation (needed / owned / missing)
   components/            # ResourceSelector, MaterialsTable, MissingList, BrandMark
   tools/RefiningTool.jsx # the calculator page component
   App.jsx                # layout: header, intro, tool, footer
 public/favicon.svg
+public/icons/            # 70 official item icons (T2–T8 × raw/refined × 5 types)
 .github/workflows/deploy.yml
 ```
 
@@ -66,6 +71,16 @@ public/favicon.svg
 2. Add a route/link in `src/App.jsx` (a simple state-based switch is enough
    for a handful of pages, or add a router if needed).
 3. Link it from the header nav.
+
+## Assets & data credits
+
+- **Names**: English item strings from the game's localization dumps
+  ([ao-data/ao-bin-dumps](https://github.com/ao-data/ao-bin-dumps)).
+- **Icons**: rendered with Albion's official render service
+  (`render.albiononline.com`) and stored locally in `public/icons/`.
+
+Albion Online is a trademark of Sandbox Interactive GmbH. This is a fan
+project, not affiliated with Sandbox Interactive.
 
 ## License
 

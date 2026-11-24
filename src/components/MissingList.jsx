@@ -1,33 +1,38 @@
 import { formatNumber } from '../lib/calculate.js'
-import { parseId, resourceName, typeColor } from '../data/resources'
+import { iconOf, parseId, resourceName } from '../data/resources'
 
-/** Compact, live list of everything that is still missing. */
-export default function MissingList({ rows, targetId }) {
-  const missing = rows.filter((row) => row.missing > 0)
+/**
+ * Live list of the raw materials still missing — the resources you actually
+ * have to gather. Intermediate refined resources are left out on purpose:
+ * they are crafted from the raws already listed here.
+ */
+export default function MissingList({ rows }) {
+  const missing = rows.filter((row) => parseId(row.id).kind === 'raw' && row.missing > 0)
 
   if (missing.length === 0) {
     return (
       <p className="all-good">
-        <span aria-hidden="true">✓</span> You have everything needed.
+        <span aria-hidden="true">✓</span> You already have all the raw materials.
       </p>
     )
   }
 
   return (
-    <div className="missing-chips" aria-live="polite">
+    <ul className="missing-list" aria-live="polite">
       {missing.map((row) => (
-        <span
-          key={row.id}
-          className={`chip ${row.id === targetId ? 'is-target' : ''}`}
-        >
-          <span
-            className="res-dot"
-            style={{ backgroundColor: typeColor(parseId(row.id).type) }}
+        <li key={row.id} className="missing-item">
+          <img
+            className="res-icon"
+            src={iconOf(row.id)}
+            alt=""
+            aria-hidden="true"
+            width="24"
+            height="24"
           />
-          <span className="chip-qty">{formatNumber(row.missing)}×</span>
-          <span className="chip-name">{resourceName(row.id)}</span>
-        </span>
+          <span className="missing-name">{resourceName(row.id)}</span>
+          <span className="missing-qty">{formatNumber(row.missing)}</span>
+        </li>
       ))}
-    </div>
+    </ul>
   )
 }

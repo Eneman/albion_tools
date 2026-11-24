@@ -97,7 +97,7 @@ export default function ResourceSelector({ value, onSelect }) {
           aria-activedescendant={
             open && options[activeIndex] ? `resource-option-${activeIndex}` : undefined
           }
-          placeholder="Search… e.g. T5 Brick"
+          placeholder="Search… e.g. T5 Granite Block"
           value={displayValue}
           onFocus={() => {
             if (!open) openList()
@@ -136,10 +136,10 @@ export default function ResourceSelector({ value, onSelect }) {
               onMouseDown={(e) => e.preventDefault()} // keep focus in the input
               onClick={() => select(opt)}
             >
-              <span className="opt-dot" style={{ backgroundColor: opt.color }} />
+              <img className="opt-icon" src={opt.icon} alt="" aria-hidden="true" width="26" height="26" />
               <span className="opt-tier">T{opt.tier}</span>
-              <span className="opt-name">{opt.refined}</span>
-              <span className="opt-raw">from {opt.rawName}</span>
+              <span className="opt-name">{opt.baseName}</span>
+              <span className="opt-raw">{opt.label}</span>
             </li>
           ))}
         </ul>

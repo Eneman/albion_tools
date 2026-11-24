@@ -14,7 +14,7 @@ const eq = (actual, expected, label) => {
 // 10 T5 Brick → 30 T5 Stone + 10 T4 Brick
 //             → 20 T4 Stone + 10 T3 Brick
 //             → 20 T3 Stone + 10 T2 Brick
-//             → 20 T2 Stone
+//             → 10 T2 Stone (T2 refine = 1 raw)
 {
   const rows = computeRequirements('stone:5:refined', 10, {})
   const get = (id) => rows.find((r) => r.id === id)?.missing
@@ -25,7 +25,7 @@ const eq = (actual, expected, label) => {
   eq(get('stone:3:refined'), 10, 'T3 Brick missing')
   eq(get('stone:3:raw'), 20, 'T3 Stone missing')
   eq(get('stone:2:refined'), 10, 'T2 Brick missing')
-  eq(get('stone:2:raw'), 20, 'T2 Stone missing')
+  eq(get('stone:2:raw'), 10, 'T2 Stone missing (1 per refine)')
   eq(rows.length, 8, 'row count')
 }
 
@@ -63,14 +63,14 @@ const eq = (actual, expected, label) => {
   eq(get('ore:5:raw'), 180, 'T5 Ore = 60 × 3')
   eq(get('ore:4:raw'), 120, 'T4 Ore = 60 × 2')
   eq(get('ore:3:raw'), 120, 'T3 Ore = 60 × 2')
-  eq(get('ore:2:raw'), 120, 'T2 Ore = 60 × 2')
+  eq(get('ore:2:raw'), 60, 'T2 Ore = 60 × 1')
 }
 
 // --- T2 has no previous refined -------------------------------------
 {
   const rows = computeRequirements('cotton:2:refined', 7, {})
   eq(rows.length, 2, 'T2 Cloth: only itself + raw')
-  eq(rows.find((r) => r.id === 'cotton:2:raw')?.missing, 14, 'T2 Cotton = 7 × 2')
+  eq(rows.find((r) => r.id === 'cotton:2:raw')?.missing, 7, 'T2 Cotton = 7 × 1')
 }
 
 // --- Quantity 0 / garbage input -------------------------------------
