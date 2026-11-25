@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { REFINED_RESOURCES, filterResources } from '../data/resources'
+import { useI18n } from '../i18n.jsx'
 
 /**
  * Editable drop-down (combobox) with type-to-filter autocomplete over every
  * refined resource (T2–T8 × 5 types). Fully keyboard accessible.
  */
 export default function ResourceSelector({ value, onSelect }) {
+  const { t, lang, resourceName, baseName } = useI18n()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
@@ -16,7 +18,7 @@ export default function ResourceSelector({ value, onSelect }) {
 
   const options = useMemo(() => filterResources(query), [query])
   const selected = REFINED_RESOURCES.find((r) => r.id === value) ?? null
-  const displayValue = open ? query : (selected?.name ?? '')
+  const displayValue = open ? query : (selected ? resourceName(selected.id) : '')
 
   // Close when clicking anywhere outside the widget.
   useEffect(() => {
@@ -80,7 +82,7 @@ export default function ResourceSelector({ value, onSelect }) {
   return (
     <div className="combo" ref={wrapRef}>
       <label className="field-label" htmlFor="resource-input">
-        Refined resource
+        {t('labelResource')}
       </label>
       <div className="combo-control">
         <input
@@ -97,7 +99,7 @@ export default function ResourceSelector({ value, onSelect }) {
           aria-activedescendant={
             open && options[activeIndex] ? `resource-option-${activeIndex}` : undefined
           }
-          placeholder="Search… e.g. T5 Granite Block"
+          placeholder={t('placeholderSearch')}
           value={displayValue}
           onFocus={() => {
             if (!open) openList()
@@ -117,12 +119,12 @@ export default function ResourceSelector({ value, onSelect }) {
           className="combo-menu"
           id="resource-listbox"
           role="listbox"
-          aria-label="Refined resources"
+          aria-label={t('listboxLabel')}
           ref={listRef}
         >
           {options.length === 0 && (
             <li className="combo-empty" role="presentation">
-              No resource matches “{query}”
+              {t('noMatch', { q: query })}
             </li>
           )}
           {options.map((opt, i) => (
@@ -138,8 +140,8 @@ export default function ResourceSelector({ value, onSelect }) {
             >
               <img className="opt-icon" src={opt.icon} alt="" aria-hidden="true" width="26" height="26" />
               <span className="opt-tier">T{opt.tier}</span>
-              <span className="opt-name">{opt.baseName}</span>
-              <span className="opt-raw">{opt.label}</span>
+              <span className="opt-name">{baseName(opt.id)}</span>
+              <span className="opt-raw">{lang === 'fr' ? opt.labelFr : opt.label}</span>
             </li>
           ))}
         </ul>

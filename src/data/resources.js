@@ -1,22 +1,26 @@
+import { OFFICIAL_FR } from './resources.fr.js'
+
 /**
  * Static game data: resource types, tiers, refining recipes and the official
- * in-game names and icons.
+ * in-game names and icons in English and French.
  *
- * Names are the English strings from the game's own localization dumps
- * (ao-data/ao-bin-dumps), icons come from Albion's official render service
- * (render.albiononline.com) and are stored locally in `public/icons/`.
+ * Names are the English and French strings from the game's own localization
+ * dumps (ao-data/ao-bin-dumps), icons come from Albion's official render
+ * service (render.albiononline.com) and are stored locally in `public/icons/`.
  *
  * A refined resource always consumes:
  *  - `raw` units of the SAME tier raw resource
  *  - `prev` units of the PREVIOUS tier refined resource (0 at T2)
  */
 
+export const LANGS = ['en', 'fr']
+
 export const TYPES = [
-  { id: 'stone', label: 'Stone', color: '#9aa5b1', rawKey: 'ROCK', refinedKey: 'STONEBLOCK', legacy: 'Brick' },
-  { id: 'wood', label: 'Wood', color: '#b07d46', rawKey: 'WOOD', refinedKey: 'PLANKS', legacy: 'Plank' },
-  { id: 'hide', label: 'Hide', color: '#cf9355', rawKey: 'HIDE', refinedKey: 'LEATHER', legacy: 'Leather' },
-  { id: 'cotton', label: 'Fiber', color: '#e8e2d2', rawKey: 'FIBER', refinedKey: 'CLOTH', legacy: 'Cloth' },
-  { id: 'ore', label: 'Ore', color: '#8fa8bf', rawKey: 'ORE', refinedKey: 'METALBAR', legacy: 'Metal' },
+  { id: 'stone', label: 'Stone', labelFr: 'Pierre', color: '#9aa5b1', rawKey: 'ROCK', refinedKey: 'STONEBLOCK', legacy: 'Brick' },
+  { id: 'wood', label: 'Wood', labelFr: 'Bois', color: '#b07d46', rawKey: 'WOOD', refinedKey: 'PLANKS', legacy: 'Plank' },
+  { id: 'hide', label: 'Hide', labelFr: 'Cuir', color: '#cf9355', rawKey: 'HIDE', refinedKey: 'LEATHER', legacy: 'Leather' },
+  { id: 'cotton', label: 'Fiber', labelFr: 'Fibre', color: '#e8e2d2', rawKey: 'FIBER', refinedKey: 'CLOTH', legacy: 'Cloth' },
+  { id: 'ore', label: 'Ore', labelFr: 'Minerai', color: '#8fa8bf', rawKey: 'ORE', refinedKey: 'METALBAR', legacy: 'Metal' },
 ]
 
 export const TIERS = [2, 3, 4, 5, 6, 7, 8]
@@ -101,6 +105,9 @@ const OFFICIAL = {
 
 const TYPE_BY_ID = Object.fromEntries(TYPES.map((t) => [t.id, t]))
 
+/** Names per language: NAMES.fr comes straight from the game's FR dump. */
+const NAMES = { en: OFFICIAL, fr: OFFICIAL_FR }
+
 export const typeOf = (typeId) => TYPE_BY_ID[typeId]
 export const typeColor = (typeId) => TYPE_BY_ID[typeId]?.color ?? '#9aa5b1'
 
@@ -112,16 +119,16 @@ export function parseId(id) {
   return { type, tier: Number(tier), kind }
 }
 
-/** Official name without tier, e.g. `stone:5:refined` → "Granite Block". */
-export function baseName(id) {
+/** Official name without tier, e.g. `stone:5:refined` / 'fr' → "Bloc de granite". */
+export function baseName(id, lang = 'en') {
   const { type, tier, kind } = parseId(id)
-  return OFFICIAL[type]?.[kind]?.[tier - 2] ?? id
+  return NAMES[lang]?.[type]?.[kind]?.[tier - 2] ?? NAMES.en[type]?.[kind]?.[tier - 2] ?? id
 }
 
 /** Display name with tier first, e.g. `stone:5:refined` → "T5 Granite Block". */
-export function resourceName(id) {
+export function resourceName(id, lang = 'en') {
   const { tier } = parseId(id)
-  return `T${tier} ${baseName(id)}`
+  return `T${tier} ${baseName(id, lang)}`
 }
 
 /** Game item unique name, e.g. `stone:5:refined` → "T5_STONEBLOCK". */
@@ -148,8 +155,12 @@ export const REFINED_RESOURCES = TIERS.flatMap((tier) =>
       kind: 'refined',
       name: resourceName(id),
       baseName: baseName(id),
+      nameFr: resourceName(id, 'fr'),
+      baseNameFr: baseName(id, 'fr'),
       rawName: OFFICIAL[t.id].raw[tier - 2],
+      rawNameFr: OFFICIAL_FR[t.id].raw[tier - 2],
       label: t.label,
+      labelFr: t.labelFr,
       legacy: t.legacy,
       color: t.color,
       icon: iconOf(id),
@@ -160,7 +171,8 @@ export const REFINED_RESOURCES = TIERS.flatMap((tier) =>
 /**
  * Autocomplete filter. The query is split on whitespace and every token must
  * appear somewhere in the haystack, so "t5 gra", "block", "steel bar",
- * "ore t5" and the legacy "t5 brick" all work.
+ * "travertin", "bloc de" and the legacy "t5 brick" all work — in either
+ * language, regardless of the current UI language.
  */
 export function filterResources(query) {
   const q = query.trim().toLowerCase()
@@ -168,7 +180,10 @@ export function filterResources(query) {
   const tokens = q.split(/\s+/)
   return REFINED_RESOURCES.filter((r) => {
     const haystack =
-      `${r.name} ${r.baseName} ${r.rawName} ${r.label} ${r.type} ${r.legacy} t${r.tier} ${r.tier}`.toLowerCase()
-    return tokens.every((token) => haystack.includes(token))
+      `${r.name} ${r.baseName} ${r.nameFr} ${r.baseNameFr} ` +
+      `${r.rawName} ${r.rawNameFr} ${r.label} ${r.labelFr} ${r.type} ${r.legacy} ` +
+      `t${r.tier} ${r.tier}`
+    const lower = haystack.toLowerCase()
+    return tokens.every((token) => lower.includes(token))
   })
 }

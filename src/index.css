@@ -143,6 +143,52 @@ a {
   background: rgba(216, 169, 78, 0.1);
 }
 
+/* ---------- Language switch: segmented EN | FR ---------- */
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+}
+
+.lang-segments {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.lang-seg {
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.lang-seg + .lang-seg {
+  border-left: 1px solid var(--border);
+}
+
+.lang-seg:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.lang-seg.is-active {
+  color: var(--gold-bright);
+  background: rgba(216, 169, 78, 0.18);
+}
+
+.lang-seg:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--gold);
+}
+
 /* ---------- Intro ---------- */
 .page-intro h1 {
   margin: 0;

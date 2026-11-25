@@ -6,9 +6,13 @@ GitHub Pages. The first tool is a **refining calculator**.
 ## Refining calculator
 
 - Drop-down with **type-to-filter autocomplete** over every refined resource
-  (T2–T8 × stone/wood/hide/fiber/ore).
+  (T2–T8 × stone/wood/hide/fiber/ore). Search works in either language.
 - **Official in-game names and icons**: "T4 Travertine Block", "T8 Adamantium
   Steel Bar", … tier first, as in game.
+- **English / French**: full UI translation with a toggle in the header
+  (🌐 EN/FR button). Item names come from the game's own EN and FR
+  localization dumps — "T4 Bloc de travertin", "T2 Peau de bête fine", …
+  The choice is persisted and the browser language is used as the default.
 - Enter the **quantity you want** to refine.
 - Shows the **full material chain**, including intermediate refined tiers
   (the output itself is not listed as a material).
@@ -55,11 +59,13 @@ user site (`<user>.github.io`) and under a project subpath
 
 ```
 src/
-  data/resources.js      # resource types, tiers, recipes, official names, autocomplete
+  data/resources.js      # resource types, tiers, recipes, official names (EN), autocomplete
+  data/resources.fr.js   # official French item names (generated from the FR dump)
+  i18n.jsx               # EN/FR strings, language context + toggle, <html lang> handling
   lib/calculate.js       # chain computation (needed / owned / missing)
-  components/            # ResourceSelector, MaterialsTable, MissingList, BrandMark
+  components/            # ResourceSelector, MaterialsTable, MissingList, NumberInput, BrandMark
   tools/RefiningTool.jsx # the calculator page component
-  App.jsx                # layout: header, intro, tool, footer
+  App.jsx                # layout: header (+ language toggle), intro, tool, footer
 public/favicon.svg
 public/icons/            # 70 official item icons (T2–T8 × raw/refined × 5 types)
 .github/workflows/deploy.yml
@@ -74,8 +80,10 @@ public/icons/            # 70 official item icons (T2–T8 × raw/refined × 5 t
 
 ## Assets & data credits
 
-- **Names**: English item strings from the game's localization dumps
-  ([ao-data/ao-bin-dumps](https://github.com/ao-data/ao-bin-dumps)).
+- **Names**: English and French item strings from the game's localization
+  dumps ([ao-data/ao-bin-dumps](https://github.com/ao-data/ao-bin-dumps)).
+  `src/data/resources.fr.js` is generated from the FR-FR segments of the TMX
+  translation memory.
 - **Icons**: rendered with Albion's official render service
   (`render.albiononline.com`) and stored locally in `public/icons/`.
 

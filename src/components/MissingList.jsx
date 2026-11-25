@@ -1,5 +1,6 @@
 import { formatNumber } from '../lib/calculate.js'
-import { iconOf, parseId, resourceName } from '../data/resources'
+import { iconOf, parseId } from '../data/resources'
+import { useI18n } from '../i18n.jsx'
 
 /**
  * Live list of the raw materials still missing — the resources you actually
@@ -7,12 +8,13 @@ import { iconOf, parseId, resourceName } from '../data/resources'
  * they are crafted from the raws already listed here.
  */
 export default function MissingList({ rows }) {
+  const { t, resourceName } = useI18n()
   const missing = rows.filter((row) => parseId(row.id).kind === 'raw' && row.missing > 0)
 
   if (missing.length === 0) {
     return (
       <p className="all-good">
-        <span aria-hidden="true">✓</span> You already have all the raw materials.
+        <span aria-hidden="true">✓</span> {t('allGood')}
       </p>
     )
   }

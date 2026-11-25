@@ -4,7 +4,8 @@ import NumberInput from '../components/NumberInput.jsx'
 import MaterialsTable from '../components/MaterialsTable.jsx'
 import MissingList from '../components/MissingList.jsx'
 import { computeRequirements, formatNumber } from '../lib/calculate.js'
-import { RECIPES, REFINED_RESOURCES, iconOf, makeId, parseId, resourceName } from '../data/resources'
+import { RECIPES, REFINED_RESOURCES, iconOf, makeId, parseId } from '../data/resources'
+import { useI18n } from '../i18n.jsx'
 
 const STORAGE_KEY = 'albion-tools:refining:v1'
 
@@ -28,6 +29,7 @@ const INITIAL_SELECTION = REFINED_RESOURCES.some((r) => r.id === INITIAL.selecte
  * compact missing list update live. State is persisted to localStorage.
  */
 export default function RefiningTool() {
+  const { t, resourceName } = useI18n()
   const [selectedId, setSelectedId] = useState(INITIAL_SELECTION)
   const [quantity, setQuantity] = useState(String(INITIAL.quantity ?? '1'))
   const [possessed, setPossessed] = useState(INITIAL.possessed ?? {})
@@ -83,12 +85,12 @@ export default function RefiningTool() {
           <ResourceSelector value={selectedId} onSelect={setSelectedId} />
           <div className="field">
             <label className="field-label" htmlFor="quantity-input">
-              Quantity wanted
+              {t('labelQuantity')}
             </label>
             <NumberInput
               id="quantity-input"
               className="quantity-input"
-              placeholder={selectedId ? 'e.g. 100' : 'Select a resource'}
+              placeholder={selectedId ? t('placeholderQty') : t('placeholderNone')}
               disabled={!selectedId}
               value={quantity}
               onChange={setQuantity}
@@ -105,37 +107,33 @@ export default function RefiningTool() {
       {!selectedId ? (
         <div className="empty-state">
           <BrandGlyph />
-          <p className="empty-title">No resource selected</p>
-          <p className="empty-text">
-            Pick a refined resource above — T2 to T8 blocks, planks, leather, cloth or metal bars —
-            and we will list every material in the chain.
-          </p>
+          <p className="empty-title">{t('emptyResTitle')}</p>
+          <p className="empty-text">{t('emptyResText')}</p>
         </div>
       ) : qty <= 0 ? (
         <div className="empty-state">
           <BrandGlyph />
-          <p className="empty-title">Enter a quantity</p>
+          <p className="empty-title">{t('emptyQtyTitle')}</p>
           <p className="empty-text">
-            Tell us how many {resourceName(selectedId)} you want and we will list every material
-            involved.
+            {t('emptyQtyText', { name: resourceName(selectedId) })}
           </p>
         </div>
       ) : (
         <>
           <section className="panel">
             <div className="panel-head">
-              <h2>Materials needed</h2>
+              <h2>{t('panelMaterials')}</h2>
               <button
                 type="button"
                 className="btn-ghost"
                 onClick={() => setPossessed({})}
                 disabled={!hasOwned}
               >
-                Clear owned
+                {t('clearOwned')}
               </button>
             </div>
             <p className="summary">
-              Crafting <span className="craft-count">{formatNumber(toCraft)}×</span>{' '}
+              {t('summaryCraft')} <span className="craft-count">{formatNumber(toCraft)}×</span>{' '}
               <img
                 className="res-icon"
                 src={iconOf(selectedId)}
@@ -156,7 +154,7 @@ export default function RefiningTool() {
 
           <section className="panel">
             <div className="panel-head">
-              <h2>Missing</h2>
+              <h2>{t('panelMissing')}</h2>
             </div>
             <MissingList rows={rows} />
           </section>
