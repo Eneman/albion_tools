@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import ResourceSelector from '../components/ResourceSelector.jsx'
 import EnchantSelect from '../components/EnchantSelect.jsx'
+import BrandGlyph from '../components/BrandGlyph.jsx'
 import NumberInput from '../components/NumberInput.jsx'
 import MaterialsTable from '../components/MaterialsTable.jsx'
 import MissingList from '../components/MissingList.jsx'
+import BulkView from './BulkView.jsx'
 import { computeRequirements, formatNumber } from '../lib/calculate.js'
 import {
   RECIPES,
@@ -31,15 +33,24 @@ const INITIAL = loadState()
 const INITIAL_SELECTION = REFINED_RESOURCES.some((r) => r.id === INITIAL.selectedId)
   ? INITIAL.selectedId
   : ''
+const INITIAL_MODE = INITIAL.mode === 'bulk' ? 'bulk' : 'single'
+const INITIAL_BULK =
+  INITIAL.bulk && typeof INITIAL.bulk === 'object' && !Array.isArray(INITIAL.bulk)
+    ? INITIAL.bulk
+    : {}
 
 /**
- * The refining calculator: pick a refined resource and an enchantment grade,
- * set the quantity you want, tick what you already own at every level of the
- * chain — the table and the compact missing list update live. State is
- * persisted to localStorage.
+ * The refining calculator, in two modes behind a toggle:
+ *
+ * - single chain: pick a refined resource and an enchantment grade, set the
+ *   quantity you want, tick what you already own at every level of the chain;
+ * - bulk: dump the whole raw stock and get the climb to each type's top tier.
+ *
+ * Both update live and are persisted to localStorage.
  */
 export default function RefiningTool() {
   const { t, resourceName } = useI18n()
+  const [mode, setMode] = useState(INITIAL_MODE)
   const [selectedId, setSelectedId] = useState(INITIAL_SELECTION)
   const [enchant, setEnchant] = useState(() => {
     const n = Math.floor(Number(INITIAL.enchant))
@@ -47,17 +58,18 @@ export default function RefiningTool() {
   })
   const [quantity, setQuantity] = useState(String(INITIAL.quantity ?? '1'))
   const [possessed, setPossessed] = useState(INITIAL.possessed ?? {})
+  const [bulk, setBulk] = useState(INITIAL_BULK)
 
   useEffect(() => {
     try {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ selectedId, enchant, quantity, possessed }),
+        JSON.stringify({ mode, selectedId, enchant, quantity, possessed, bulk }),
       )
     } catch {
       // storage unavailable (private mode) — the tool still works, just not persisted
     }
-  }, [selectedId, enchant, quantity, possessed])
+  }, [mode, selectedId, enchant, quantity, possessed, bulk])
 
   const target = selectedId ? parseId(selectedId) : null
   // A grade is only meaningful from T4 up, so clamp instead of trusting storage.
@@ -112,110 +124,114 @@ export default function RefiningTool() {
 
   return (
     <div className="tool">
-      <section className="panel">
-        <div className="controls-grid">
-          <ResourceSelector value={selectedId} onSelect={handleSelect} />
-          <EnchantSelect tier={target?.tier ?? 0} value={grade} onChange={setEnchant} disabled={!selectedId} />
-          <div className="field">
-            <label className="field-label" htmlFor="quantity-input">
-              {t('labelQuantity')}
-            </label>
-            <NumberInput
-              id="quantity-input"
-              className="quantity-input"
-              placeholder={selectedId ? t('placeholderQty') : t('placeholderNone')}
-              disabled={!selectedId}
-              value={quantity}
-              onChange={setQuantity}
-            />
-          </div>
-        </div>
-        {recipeLeft && (
-          <p className="recipe-hint">
-            <strong>{recipeLeft}</strong> = {recipeRight}
-          </p>
-        )}
-        {showStoneHint && <p className="recipe-note">{t('stoneHint')}</p>}
-      </section>
+      {/* Mode toggle */}
+      <div className="mode-toggle" role="group" aria-label={t('modeGroup')}>
+        <button
+          type="button"
+          className={`mode-btn ${mode === 'single' ? 'is-active' : ''}`}
+          aria-pressed={mode === 'single'}
+          onClick={() => setMode('single')}
+        >
+          {t('modeSingle')}
+        </button>
+        <button
+          type="button"
+          className={`mode-btn ${mode === 'bulk' ? 'is-active' : ''}`}
+          aria-pressed={mode === 'bulk'}
+          onClick={() => setMode('bulk')}
+        >
+          {t('modeBulk')}
+        </button>
+      </div>
 
-      {!selectedId ? (
-        <div className="empty-state">
-          <BrandGlyph />
-          <p className="empty-title">{t('emptyResTitle')}</p>
-          <p className="empty-text">{t('emptyResText')}</p>
-        </div>
-      ) : qty <= 0 ? (
-        <div className="empty-state">
-          <BrandGlyph />
-          <p className="empty-title">{t('emptyQtyTitle')}</p>
-          <p className="empty-text">
-            {t('emptyQtyText', { name: resourceName(targetId) })}
-          </p>
-        </div>
+      {mode === 'bulk' ? (
+        <BulkView bulk={bulk} onChange={setBulk} />
       ) : (
         <>
           <section className="panel">
-            <div className="panel-head">
-              <h2>{t('panelMaterials')}</h2>
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={() => setPossessed({})}
-                disabled={!hasOwned}
-              >
-                {t('clearOwned')}
-              </button>
+            <div className="controls-grid">
+              <ResourceSelector value={selectedId} onSelect={handleSelect} />
+              <EnchantSelect tier={target?.tier ?? 0} value={grade} onChange={setEnchant} disabled={!selectedId} />
+              <div className="field">
+                <label className="field-label" htmlFor="quantity-input">
+                  {t('labelQuantity')}
+                </label>
+                <NumberInput
+                  id="quantity-input"
+                  className="quantity-input"
+                  placeholder={selectedId ? t('placeholderQty') : t('placeholderNone')}
+                  disabled={!selectedId}
+                  value={quantity}
+                  onChange={setQuantity}
+                />
+              </div>
             </div>
-            <p className="summary">
-              {t('summaryCraft')} <span className="craft-count">{formatNumber(toCraft)}×</span>{' '}
-              <img
-                className="res-icon"
-                src={iconOf(targetId)}
-                alt=""
-                aria-hidden="true"
-                width="22"
-                height="22"
-              />
-              {resourceName(targetId)}
-            </p>
-            <MaterialsTable
-              rows={rows}
-              targetId={targetId}
-              possessed={possessed}
-              onPossessChange={handlePossess}
-            />
+            {recipeLeft && (
+              <p className="recipe-hint">
+                <strong>{recipeLeft}</strong> = {recipeRight}
+              </p>
+            )}
+            {showStoneHint && <p className="recipe-note">{t('stoneHint')}</p>}
           </section>
 
-          <section className="panel">
-            <div className="panel-head">
-              <h2>{t('panelMissing')}</h2>
+          {!selectedId ? (
+            <div className="empty-state">
+              <BrandGlyph />
+              <p className="empty-title">{t('emptyResTitle')}</p>
+              <p className="empty-text">{t('emptyResText')}</p>
             </div>
-            <MissingList rows={rows} />
-          </section>
+          ) : qty <= 0 ? (
+            <div className="empty-state">
+              <BrandGlyph />
+              <p className="empty-title">{t('emptyQtyTitle')}</p>
+              <p className="empty-text">
+                {t('emptyQtyText', { name: resourceName(targetId) })}
+              </p>
+            </div>
+          ) : (
+            <>
+              <section className="panel">
+                <div className="panel-head">
+                  <h2>{t('panelMaterials')}</h2>
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    onClick={() => setPossessed({})}
+                    disabled={!hasOwned}
+                  >
+                    {t('clearOwned')}
+                  </button>
+                </div>
+                <p className="summary">
+                  {t('summaryCraft')} <span className="craft-count">{formatNumber(toCraft)}×</span>{' '}
+                  <img
+                    className="res-icon"
+                    src={iconOf(targetId)}
+                    alt=""
+                    aria-hidden="true"
+                    width="22"
+                    height="22"
+                  />
+                  {resourceName(targetId)}
+                </p>
+                <MaterialsTable
+                  rows={rows}
+                  targetId={targetId}
+                  possessed={possessed}
+                  onPossessChange={handlePossess}
+                />
+              </section>
+
+              <section className="panel">
+                <div className="panel-head">
+                  <h2>{t('panelMissing')}</h2>
+                </div>
+                <MissingList rows={rows} />
+              </section>
+            </>
+          )}
         </>
       )}
     </div>
-  )
-}
-
-function BrandGlyph() {
-  return (
-    <svg
-      className="empty-mark"
-      viewBox="0 0 64 64"
-      width="56"
-      height="56"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path
-        d="M18 44 L32 16 L46 44 Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="4"
-        strokeLinejoin="round"
-      />
-      <path d="M24 36 H40" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-    </svg>
   )
 }

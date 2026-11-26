@@ -248,6 +248,47 @@ a {
   vertical-align: -5px;
 }
 
+/* ---------- Mode toggle ---------- */
+.mode-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 4px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--radius) - 2px);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.mode-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mode-btn.is-active {
+  color: var(--gold-bright);
+  background: rgba(216, 169, 78, 0.18);
+}
+
+.mode-btn:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--gold);
+}
+
 /* ---------- Form controls ---------- */
 .field-label {
   display: block;
@@ -837,5 +878,101 @@ a {
 
   .num-input {
     width: 116px;
+  }
+}
+
+/* ---------- Bulk view ---------- */
+.bulk-rows {
+  display: grid;
+  gap: 14px;
+}
+
+.bulk-row {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.bulk-type {
+  padding-top: 4px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--text-dim);
+}
+
+.bulk-cells {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.bulk-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bulk-cell .field-label {
+  font-size: 0.68rem;
+}
+
+.bulk-cell .num-input {
+  width: 100%;
+  padding: 8px 10px;
+  text-align: center;
+}
+
+.bulk-plans {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bulk-plan {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.bulk-plan-qty {
+  color: var(--gold-bright);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.1rem;
+}
+
+.bulk-plan-name {
+  font-weight: 500;
+}
+
+/* Responsive bulk */
+@media (max-width: 720px) {
+  .bulk-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .bulk-cells {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .bulk-cells {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 420px) {
+  .bulk-cells {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

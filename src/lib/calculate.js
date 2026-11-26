@@ -53,8 +53,15 @@ export function computeRequirements(targetId, quantity, possessed = {}) {
 
   visit(targetId, Math.max(0, Math.floor(quantity)))
 
-  // Top of the chain first: highest tier, refined before raw, stable type order.
-  return [...rows.values()].sort((a, b) => {
+  return sortRows([...rows.values()])
+}
+
+/**
+ * Top of the chain first: highest tier, refined before raw, stable type
+ * order. Shared with bulk mode so both views list resources identically.
+ */
+export function sortRows(rows) {
+  return rows.sort((a, b) => {
     const pa = parseId(a.id)
     const pb = parseId(b.id)
     if (pb.tier !== pa.tier) return pb.tier - pa.tier
