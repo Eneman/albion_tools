@@ -1,4 +1,5 @@
 import { OFFICIAL_FR } from './resources.fr.js'
+import { ENCHANTED_NAMES } from './resources.enchant.js'
 
 /**
  * Static game data: resource types, tiers, refining recipes and the official
@@ -11,6 +12,11 @@ import { OFFICIAL_FR } from './resources.fr.js'
  * A refined resource always consumes:
  *  - `raw` units of the SAME tier raw resource
  *  - `prev` units of the PREVIOUS tier refined resource (0 at T2)
+ *
+ * Enchanted grades (`.1`/`.2`/`.3`) are appended to the id as `@1`…`@3` —
+ * `ore:4:refined@1` — and only exist for T4–T8. Stone blocks carry no
+ * enchantment themselves: an enchant level on a stone block id selects the
+ * grade of ROCK it is refined from.
  */
 
 export const LANGS = ['en', 'fr']
@@ -34,6 +40,51 @@ export const RECIPES = {
   6: { raw: 4, prev: 1 },
   7: { raw: 5, prev: 1 },
   8: { raw: 5, prev: 1 },
+}
+
+/** Enchantment grades, `.1` to `.3` (`.0` = plain, unenchanted). */
+export const ENCHANTS = [0, 1, 2, 3]
+
+/**
+ * Whether an item exists in enchanted form.
+ *
+ * Enchanted variants only exist from T4 upwards — the game has no enchanted
+ * T2/T3 resources — and stone blocks never have one: stone is enchanted at the
+ * ROCK, not at the block. So a stone target carrying an enchant level means
+ * "refined from that grade of rock", and its name and icon stay those of the
+ * plain block.
+ */
+export function hasEnchantedVariant(type, kind, tier) {
+  return tier >= 4 && !(type === 'stone' && kind === 'refined')
+}
+
+/** Enchant grades selectable for a given tier (T2/T3 offer only `.0`). */
+export function enchantOptions(tier) {
+  return tier >= 4 ? ENCHANTS : [0]
+}
+
+/**
+ * How many units ONE craft produces.
+ *
+ * Every recipe yields 1 unit except stone with an enchanted rock: stone blocks
+ * cannot be enchanted, so the game instead multiplies the yield — `.1` → 2,
+ * `.2` → 4, `.3` — consuming proportionally more of the previous tier's plain
+ * blocks (verified against the game's own crafting data).
+ */
+export function outputPerCraft(type, tier, enchant) {
+  return type === 'stone' && enchant > 0 ? 2 ** enchant : 1
+}
+
+/**
+ * Enchant grade of the PREVIOUS tier's refined input for a given target.
+ *
+ * The previous tier carries the same grade — except at T4, whose previous tier
+ * is T3 and T3 has no enchanted variants at all, so T4 refinement always takes
+ * the plain T3 input. Stone never propagates: its inputs are plain blocks.
+ */
+export function prevEnchantOf(type, tier, enchant) {
+  if (type === 'stone' || tier < 5) return 0
+  return enchant
 }
 
 /**
@@ -111,32 +162,48 @@ const NAMES = { en: OFFICIAL, fr: OFFICIAL_FR }
 export const typeOf = (typeId) => TYPE_BY_ID[typeId]
 export const typeColor = (typeId) => TYPE_BY_ID[typeId]?.color ?? '#9aa5b1'
 
-/** Resource ids look like `stone:5:raw` or `ore:8:refined`. */
-export const makeId = (type, tier, kind) => `${type}:${tier}:${kind}`
+/** Resource ids look like `stone:5:raw` or `ore:8:refined@2` (grade 0 omits `@…`). */
+export const makeId = (type, tier, kind, enchant = 0) =>
+  `${type}:${tier}:${kind}${enchant > 0 ? `@${enchant}` : ''}`
 
 export function parseId(id) {
-  const [type, tier, kind] = id.split(':')
-  return { type, tier: Number(tier), kind }
+  const [type, tier, rest = ''] = id.split(':')
+  const at = rest.indexOf('@')
+  const kind = at === -1 ? rest : rest.slice(0, at)
+  const enchant = at === -1 ? 0 : Number(rest.slice(at + 1)) || 0
+  return { type, tier: Number(tier), kind, enchant }
+}
+
+/** True when `id` is a target the refined drop-down can legitimately produce. */
+export function isValidTarget(id) {
+  const { type, tier, kind, enchant } = parseId(id)
+  if (kind !== 'refined' || !TYPE_BY_ID[type] || !TIERS.includes(tier)) return false
+  return enchant === 0 || (enchant <= 3 && tier >= 4)
 }
 
 /** Official name without tier, e.g. `stone:5:refined` / 'fr' → "Bloc de granite". */
 export function baseName(id, lang = 'en') {
-  const { type, tier, kind } = parseId(id)
+  const { type, tier, kind, enchant } = parseId(id)
+  if (enchant > 0 && hasEnchantedVariant(type, kind, tier)) {
+    const enchanted = ENCHANTED_NAMES[lang]?.[type]?.[kind]?.[tier]?.[enchant]
+    if (enchanted) return enchanted
+  }
   return NAMES[lang]?.[type]?.[kind]?.[tier - 2] ?? NAMES.en[type]?.[kind]?.[tier - 2] ?? id
 }
 
-/** Display name with tier first, e.g. `stone:5:refined` → "T5 Granite Block". */
+/** Display name with tier first, e.g. `ore:4:refined@1` → "T4 Uncommon Fine Cloth". */
 export function resourceName(id, lang = 'en') {
   const { tier } = parseId(id)
   return `T${tier} ${baseName(id, lang)}`
 }
 
-/** Game item unique name, e.g. `stone:5:refined` → "T5_STONEBLOCK". */
+/** Game item unique name, e.g. `ore:4:refined@1` → "T4_CLOTH_LEVEL1". */
 export function itemUniqueName(id) {
-  const { type, tier, kind } = parseId(id)
+  const { type, tier, kind, enchant } = parseId(id)
   const t = TYPE_BY_ID[type]
   if (!t) return id
-  return `T${tier}_${kind === 'raw' ? t.rawKey : t.refinedKey}`
+  const base = `T${tier}_${kind === 'raw' ? t.rawKey : t.refinedKey}`
+  return enchant > 0 && hasEnchantedVariant(type, kind, tier) ? `${base}_LEVEL${enchant}` : base
 }
 
 /** Local icon path for a resource, e.g. `icons/T5_STONEBLOCK.png`. */

@@ -1,4 +1,4 @@
-import { RECIPES, makeId, parseId, TYPES } from '../data/resources.js'
+import { RECIPES, makeId, outputPerCraft, parseId, prevEnchantOf, TYPES } from '../data/resources.js'
 
 const TYPE_ORDER = Object.fromEntries(TYPES.map((t, i) => [t.id, i]))
 
@@ -15,7 +15,7 @@ export const formatNumber = (n) => numberFormat.format(n)
  * requirements drop too. Each resource appears at most once in a chain, so a
  * simple depth-first walk is enough.
  *
- * @param {string} targetId  e.g. `stone:5:refined`
+ * @param {string} targetId  e.g. `stone:5:refined` or `ore:4:refined@1`
  * @param {number} quantity  how many units of the target to obtain
  * @param {Record<string, string|number>} possessed  user-owned amounts per id
  * @returns {Array<{id: string, needed: number, possessed: number, missing: number}>}
@@ -34,12 +34,21 @@ export function computeRequirements(targetId, quantity, possessed = {}) {
     const missing = Math.max(0, qty - owned)
     rows.set(id, { id, needed: qty, possessed: owned, missing })
 
-    const { type, tier, kind } = parseId(id)
+    const { type, tier, kind, enchant } = parseId(id)
     if (kind !== 'refined') return // raw resources have no components
 
     const recipe = RECIPES[tier]
-    if (recipe.raw > 0) visit(makeId(type, tier, 'raw'), missing * recipe.raw)
-    if (recipe.prev > 0) visit(makeId(type, tier - 1, 'refined'), missing * recipe.prev)
+    const out = outputPerCraft(type, tier, enchant)
+    // Crafts are whole batches: 4 wanted from a ×4 recipe is 1 craft, not 0.25.
+    const crafts = Math.ceil(missing / out)
+
+    // One craft always eats `raw` of the same grade's raw resource, and yields
+    // `out` units against `out` of the previous tier's refined input — for
+    // plain recipes both are 1, for enchanted stone both are 2/4/8.
+    if (recipe.raw > 0) visit(makeId(type, tier, 'raw', enchant), crafts * recipe.raw)
+    if (recipe.prev > 0) {
+      visit(makeId(type, tier - 1, 'refined', prevEnchantOf(type, tier, enchant)), crafts * out)
+    }
   }
 
   visit(targetId, Math.max(0, Math.floor(quantity)))
@@ -50,6 +59,7 @@ export function computeRequirements(targetId, quantity, possessed = {}) {
     const pb = parseId(b.id)
     if (pb.tier !== pa.tier) return pb.tier - pa.tier
     if (pa.kind !== pb.kind) return pa.kind === 'refined' ? -1 : 1
+    if (pb.enchant !== pa.enchant) return pb.enchant - pa.enchant
     return TYPE_ORDER[pa.type] - TYPE_ORDER[pb.type]
   })
 }

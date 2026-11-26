@@ -287,13 +287,53 @@ a {
 
 .controls-grid {
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1.1fr) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
 
 .quantity-input {
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Enchantment drop-down ---------- */
+.select-wrap {
+  position: relative;
+  display: block;
+}
+
+.select-input {
+  padding-right: 34px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.select-input:disabled {
+  cursor: not-allowed;
+}
+
+/* Native option lists follow the OS, so pin them to the palette. */
+.select-input option {
+  background: var(--bg-input);
+  color: var(--text);
+}
+
+.select-caret {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--text-dim);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.select-input:disabled ~ .select-caret {
+  opacity: 0.4;
 }
 
 /* ---------- Number input with stepper arrows ---------- */
@@ -362,6 +402,15 @@ a {
 .recipe-hint strong {
   color: var(--gold-bright);
   font-weight: 600;
+}
+
+/* Explains why a stone target's enchant grade changes the materials, not the
+   block itself — blocks cannot be enchanted, only the rocks can. */
+.recipe-note {
+  margin: 8px 0 0;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  line-height: 1.5;
 }
 
 /* ---------- Buttons ---------- */
