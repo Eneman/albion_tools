@@ -12,6 +12,7 @@ import {
   REFINED_RESOURCES,
   iconOf,
   makeId,
+  maxEnchantOf,
   outputPerCraft,
   parseId,
   prevEnchantOf,
@@ -54,7 +55,7 @@ export default function RefiningTool() {
   const [selectedId, setSelectedId] = useState(INITIAL_SELECTION)
   const [enchant, setEnchant] = useState(() => {
     const n = Math.floor(Number(INITIAL.enchant))
-    return Number.isFinite(n) && n >= 0 && n <= 3 ? n : 0
+    return Number.isFinite(n) && n >= 0 && n <= 4 ? n : 0
   })
   const [quantity, setQuantity] = useState(String(INITIAL.quantity ?? '1'))
   const [possessed, setPossessed] = useState(INITIAL.possessed ?? {})
@@ -72,8 +73,12 @@ export default function RefiningTool() {
   }, [mode, selectedId, enchant, quantity, possessed, bulk])
 
   const target = selectedId ? parseId(selectedId) : null
-  // A grade is only meaningful from T4 up, so clamp instead of trusting storage.
-  const grade = target && target.tier >= 4 && enchant >= 1 && enchant <= 3 ? enchant : 0
+  // A grade is only meaningful from T4 up (and stone stops at .3), so clamp
+  // instead of trusting storage.
+  const grade =
+    target && target.tier >= 4 && enchant >= 1 && enchant <= maxEnchantOf(target.type)
+      ? enchant
+      : 0
   const targetId = target ? makeId(target.type, target.tier, 'refined', grade) : null
   const qty = /^\d+$/.test(quantity) ? parseInt(quantity, 10) : 0
 
@@ -151,7 +156,13 @@ export default function RefiningTool() {
           <section className="panel">
             <div className="controls-grid">
               <ResourceSelector value={selectedId} onSelect={handleSelect} />
-              <EnchantSelect tier={target?.tier ?? 0} value={grade} onChange={setEnchant} disabled={!selectedId} />
+              <EnchantSelect
+                tier={target?.tier ?? 0}
+                type={target?.type}
+                value={grade}
+                onChange={setEnchant}
+                disabled={!selectedId}
+              />
               <div className="field">
                 <label className="field-label" htmlFor="quantity-input">
                   {t('labelQuantity')}

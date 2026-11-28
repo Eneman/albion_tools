@@ -13,10 +13,11 @@ import { ENCHANTED_NAMES } from './resources.enchant.js'
  *  - `raw` units of the SAME tier raw resource
  *  - `prev` units of the PREVIOUS tier refined resource (0 at T2)
  *
- * Enchanted grades (`.1`/`.2`/`.3`) are appended to the id as `@1`…`@3` —
+ * Enchanted grades (`.1`…`.4`) are appended to the id as `@1`…`@4` —
  * `ore:4:refined@1` — and only exist for T4–T8. Stone blocks carry no
  * enchantment themselves: an enchant level on a stone block id selects the
- * grade of ROCK it is refined from.
+ * grade of ROCK it is refined from — and stone stops at `.3`, the game has
+ * no pristine (`.4`) rocks.
  */
 
 export const LANGS = ['en', 'fr']
@@ -42,8 +43,16 @@ export const RECIPES = {
   8: { raw: 5, prev: 1 },
 }
 
-/** Enchantment grades, `.1` to `.3` (`.0` = plain, unenchanted). */
-export const ENCHANTS = [0, 1, 2, 3]
+/** Enchantment grades, `.1` to `.4` (`.0` = plain, unenchanted). */
+export const ENCHANTS = [0, 1, 2, 3, 4]
+
+/**
+ * Highest enchantment grade a resource type supports.
+ *
+ * Everything goes to `.4` (Pristine) from T4 up — except stone: the game has
+ * no pristine rocks, so stone stops at `.3` like it always has.
+ */
+export const maxEnchantOf = (type) => (type === 'stone' ? 3 : 4)
 
 /**
  * Whether an item exists in enchanted form.
@@ -52,15 +61,19 @@ export const ENCHANTS = [0, 1, 2, 3]
  * T2/T3 resources — and stone blocks never have one: stone is enchanted at the
  * ROCK, not at the block. So a stone target carrying an enchant level means
  * "refined from that grade of rock", and its name and icon stay those of the
- * plain block.
+ * plain block. The grade itself is capped by `maxEnchantOf`.
  */
 export function hasEnchantedVariant(type, kind, tier) {
   return tier >= 4 && !(type === 'stone' && kind === 'refined')
 }
 
-/** Enchant grades selectable for a given tier (T2/T3 offer only `.0`). */
-export function enchantOptions(tier) {
-  return tier >= 4 ? ENCHANTS : [0]
+/**
+ * Enchant grades selectable for a given tier and type
+ * (T2/T3 offer only `.0`; stone stops at `.3`).
+ */
+export function enchantOptions(tier, type) {
+  if (tier < 4) return [0]
+  return ENCHANTS.filter((grade) => grade <= maxEnchantOf(type))
 }
 
 /**
@@ -68,8 +81,9 @@ export function enchantOptions(tier) {
  *
  * Every recipe yields 1 unit except stone with an enchanted rock: stone blocks
  * cannot be enchanted, so the game instead multiplies the yield — `.1` → 2,
- * `.2` → 4, `.3` — consuming proportionally more of the previous tier's plain
- * blocks (verified against the game's own crafting data).
+ * `.2` → 4, `.3` → 8 (and `.4` would be ×16, though pristine rocks do not
+ * exist) — consuming proportionally more of the previous tier's plain blocks
+ * (verified against the game's own crafting data).
  */
 export function outputPerCraft(type, tier, enchant) {
   return type === 'stone' && enchant > 0 ? 2 ** enchant : 1
@@ -178,13 +192,13 @@ export function parseId(id) {
 export function isValidTarget(id) {
   const { type, tier, kind, enchant } = parseId(id)
   if (kind !== 'refined' || !TYPE_BY_ID[type] || !TIERS.includes(tier)) return false
-  return enchant === 0 || (enchant <= 3 && tier >= 4)
+  return enchant === 0 || (tier >= 4 && enchant <= maxEnchantOf(type))
 }
 
 /** Official name without tier, e.g. `stone:5:refined` / 'fr' → "Bloc de granite". */
 export function baseName(id, lang = 'en') {
   const { type, tier, kind, enchant } = parseId(id)
-  if (enchant > 0 && hasEnchantedVariant(type, kind, tier)) {
+  if (enchant > 0 && enchant <= maxEnchantOf(type) && hasEnchantedVariant(type, kind, tier)) {
     const enchanted = ENCHANTED_NAMES[lang]?.[type]?.[kind]?.[tier]?.[enchant]
     if (enchanted) return enchanted
   }
@@ -203,7 +217,9 @@ export function itemUniqueName(id) {
   const t = TYPE_BY_ID[type]
   if (!t) return id
   const base = `T${tier}_${kind === 'raw' ? t.rawKey : t.refinedKey}`
-  return enchant > 0 && hasEnchantedVariant(type, kind, tier) ? `${base}_LEVEL${enchant}` : base
+  return enchant > 0 && enchant <= maxEnchantOf(type) && hasEnchantedVariant(type, kind, tier)
+    ? `${base}_LEVEL${enchant}`
+    : base
 }
 
 /** Local icon path for a resource, e.g. `icons/T5_STONEBLOCK.png`. */

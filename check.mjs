@@ -1,9 +1,13 @@
 // Quick sanity check for the refining chain math. Run with: node check.mjs
 import { computeRequirements } from './src/lib/calculate.js'
+import { bulkCompute } from './src/lib/bulk.js'
 import {
+  enchantOptions,
   iconOf,
   isValidTarget,
   makeId,
+  maxEnchantOf,
+  outputPerCraft,
   parseId,
   resourceName,
 } from './src/data/resources.js'
@@ -212,6 +216,144 @@ const eq = (actual, expected, label) => {
     40,
     'plain T8 stone untouched: 8 × 5',
   )
+}
+
+// --- Bulk: plain stock climbs to the highest tier held ----------------
+// 100 T5 Granite → floor(100/3) = 33 crafts → 33 blocks; the top rocks are
+// owned, everything below must be gathered.
+{
+  const { plans, rows } = bulkCompute({ 'stone:5:raw': '100' })
+  eq(plans.length, 1, 'bulk: one stone plan')
+  eq(plans[0].targetId, 'stone:5:refined', 'bulk: stone targets plain blocks')
+  eq(plans[0].quantity, 33, 'bulk: 33 crafts from 100 granite')
+  const get = (id) => rows.find((r) => r.id === id)?.missing
+  eq(get('stone:5:raw'), 0, 'bulk: top rocks all owned')
+  eq(get('stone:4:raw'), 66, 'bulk: T4 Granite missing 66')
+  eq(get('stone:3:raw'), 66, 'bulk: T3 Granite missing 66')
+  eq(get('stone:2:raw'), 33, 'bulk: T2 Granite missing 33')
+}
+
+// --- Bulk: enchanted raws climb their own grade -----------------------
+// 30 T5.1 Logs → 10 crafts of T5.1 Planks, with the plain T3/T2 bottom.
+{
+  const { plans, rows } = bulkCompute({ 'wood:5:raw@1': '30' })
+  eq(plans.length, 1, 'bulk: one enchanted plan')
+  eq(plans[0].targetId, 'wood:5:refined@1', 'bulk: .1 target')
+  eq(plans[0].quantity, 10, 'bulk: 10 crafts from 30 logs')
+  const get = (id) => rows.find((r) => r.id === id)?.missing
+  eq(get('wood:5:raw@1'), 0, 'bulk: enchanted top owned')
+  eq(get('wood:4:raw@1'), 20, 'bulk: T4.1 Logs missing 20')
+  eq(get('wood:3:raw'), 20, 'bulk: plain T3 bottom missing 20')
+  eq(get('wood:2:raw'), 10, 'bulk: plain T2 bottom missing 10')
+}
+
+// --- Bulk: two grades share the plain T3/T2 bottom, no double-counting -
+// Each chain asks for 20 T3 / 10 T2 Logs, but the bank holds only 25 / 15:
+// the stock may be claimed once, the other chain shows the true shortfall.
+{
+  const { plans, rows } = bulkCompute({
+    'wood:5:raw': '30',
+    'wood:5:raw@1': '30',
+    'wood:3:raw': '25',
+    'wood:2:raw': '15',
+  })
+  eq(plans.length, 2, 'bulk: one plan per grade')
+  eq(plans[0].targetId, 'wood:5:refined', 'bulk: plain plan first')
+  eq(plans[1].targetId, 'wood:5:refined@1', 'bulk: .1 plan second')
+  const get = (id) => rows.find((r) => r.id === id)
+  eq(get('wood:3:raw').needed, 40, 'bulk: shared T3 demand = 20 + 20')
+  eq(get('wood:3:raw').possessed, 25, 'bulk: T3 stock counted once')
+  eq(get('wood:3:raw').missing, 15, 'bulk: T3 shortfall = 40 - 25')
+  eq(get('wood:2:raw').needed, 20, 'bulk: shared T2 demand = 10 + 10')
+  eq(get('wood:2:raw').missing, 5, 'bulk: T2 shortfall = 20 - 15')
+}
+
+// --- Bulk: stone mixes rock grades at the top tier ---------------------
+// 100 plain + 40 .2 T5 Granite → 33 plain crafts (33 blocks) and 13 .2
+// crafts (13 × 4 = 52 blocks) → a single plan of 85 blocks.
+{
+  const { plans, rows } = bulkCompute({ 'stone:5:raw': '100', 'stone:5:raw@2': '40' })
+  eq(plans.length, 1, 'bulk: stone stays a single plan')
+  eq(plans[0].quantity, 85, 'bulk: 33 + 13×4 blocks')
+  const get = (id) => rows.find((r) => r.id === id)?.missing
+  eq(get('stone:5:raw'), 0, 'bulk: plain rocks owned')
+  eq(get('stone:5:raw@2'), 0, 'bulk: .2 rocks owned')
+  eq(get('stone:4:raw'), 170, 'bulk: 85 blocks need 170 T4 Granite')
+  eq(get('stone:2:raw'), 85, 'bulk: T2 Granite = 85')
+}
+
+// --- Bulk: enchanted grades below T4 never plan ------------------------
+{
+  const none = bulkCompute({ 'wood:3:raw@1': '10' })
+  eq(none.plans.length, 0, 'bulk: no T3.1 plan exists')
+  eq(none.rows.length, 0, 'bulk: no rows either')
+  eq(bulkCompute({}).plans.length, 0, 'bulk: empty stock → no plans')
+}
+
+// --- Bulk: T2 refines 1 raw per craft ----------------------------------
+{
+  eq(bulkCompute({ 'ore:2:raw': '7' }).plans[0].quantity, 7, 'bulk: T2 = 1 per refine')
+}
+
+// --- .4 (Pristine): available everywhere except stone ------------------
+{
+  eq(maxEnchantOf('ore'), 4, 'non-stone types reach .4')
+  eq(maxEnchantOf('stone'), 3, 'stone stops at .3 (no pristine rocks)')
+  eq(JSON.stringify(enchantOptions(5, 'ore')), '[0,1,2,3,4]', 'T5 ore offers .0–.4')
+  eq(JSON.stringify(enchantOptions(5, 'stone')), '[0,1,2,3]', 'T5 stone offers .0–.3')
+  eq(JSON.stringify(enchantOptions(3, 'ore')), '[0]', 'T3 still offers .0 only')
+
+  eq(isValidTarget('ore:5:refined@4'), true, 'T5.4 Metal Bar is a valid target')
+  eq(isValidTarget('stone:5:refined@4'), false, 'stone .4 target is rejected')
+  eq(isValidTarget('ore:3:refined@4'), false, 'T3 .4 is rejected')
+
+  eq(resourceName('ore:5:refined@4'), 'T5 Pristine Titanium Steel Bar', 'EN .4 refined name')
+  eq(resourceName('ore:5:refined@4', 'fr'), 'T5 Barre de titane en parfait état', 'FR .4 refined name')
+  eq(resourceName('wood:6:raw@4'), 'T6 Pristine Bloodoak Logs', 'EN .4 raw name')
+  eq(resourceName('wood:6:raw@4', 'fr'), 'T6 Troncs de chêne rouge en parfait état', 'FR .4 raw name')
+  eq(iconOf('ore:5:refined@4'), 'icons/T5_METALBAR_LEVEL4.png', '.4 refined icon')
+  eq(iconOf('wood:6:raw@4'), 'icons/T6_WOOD_LEVEL4.png', '.4 raw icon')
+
+  // An impossible stone .4 id degrades to the plain name/icon instead of
+  // pointing at a LEVEL4 rock that does not exist.
+  eq(resourceName('stone:5:raw@4'), 'T5 Granite', 'stone .4 name falls back to plain')
+  eq(iconOf('stone:5:raw@4'), 'icons/T5_ROCK.png', 'stone .4 icon falls back to plain')
+}
+
+// --- .4 chain: grade propagates T5 → T4, then drops at T3 --------------
+// 5 T5.4 Metal Bar → 15 T5.4 Ore + 5 T4.4 Metal Bar → 10 T4.4 Ore
+//                  → 5 plain T3 Bar → 10 T3 Ore → 5 T2 Ore
+{
+  const rows = computeRequirements('ore:5:refined@4', 5, {})
+  const get = (id) => rows.find((r) => r.id === id)?.missing
+  eq(get('ore:5:refined@4'), 5, 'T5.4 Bar missing')
+  eq(get('ore:5:raw@4'), 15, 'T5.4 Ore = 5 × 3')
+  eq(get('ore:4:refined@4'), 5, 'prev tier keeps .4')
+  eq(get('ore:4:raw@4'), 10, 'T4.4 Ore = 5 × 2')
+  eq(get('ore:3:refined'), 5, 'grade drops at T3')
+  eq(get('ore:3:raw'), 10, 'plain T3 Ore = 10')
+  eq(get('ore:2:raw'), 5, 'plain T2 Ore = 5')
+}
+
+// --- Stone yield math still stops at ×8 --------------------------------
+{
+  eq(outputPerCraft('stone', 5, 3), 8, 'stone .3 yields ×8')
+  eq(outputPerCraft('stone', 5, 4), 16, 'stone .4 would yield ×16 (unreachable)')
+  eq(outputPerCraft('ore', 5, 4), 1, 'non-stone .4 still yields 1')
+}
+
+// --- Bulk: .4 stock climbs its own chain; stone has no .4 --------------
+{
+  const { plans, rows } = bulkCompute({ 'ore:5:raw@4': '30' })
+  eq(plans.length, 1, 'bulk: one .4 plan')
+  eq(plans[0].targetId, 'ore:5:refined@4', 'bulk: .4 target')
+  eq(plans[0].quantity, 10, 'bulk: 10 crafts from 30 ore')
+  const get = (id) => rows.find((r) => r.id === id)?.missing
+  eq(get('ore:5:raw@4'), 0, 'bulk: .4 top ore owned')
+  eq(get('ore:4:raw@4'), 20, 'bulk: T4.4 Ore missing 20')
+  eq(get('ore:3:raw'), 20, 'bulk: plain T3 bottom missing 20')
+
+  eq(bulkCompute({ 'stone:5:raw@4': '10' }).plans.length, 0, 'bulk: stone .4 plans nothing')
 }
 
 console.log(process.exitCode ? '\nSome checks failed.' : '\nAll checks passed.')

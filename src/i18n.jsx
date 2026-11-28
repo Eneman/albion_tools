@@ -25,6 +25,7 @@ const STRINGS = {
     enchant1: '.1 Uncommon',
     enchant2: '.2 Rare',
     enchant3: '.3 Exceptional',
+    enchant4: '.4 Pristine',
     stoneHint:
       'Stone blocks cannot be enchanted — this selects the grade of rock you refine, which yields ×2 / ×4 / ×8 blocks.',
     labelQuantity: 'Quantity wanted',
@@ -56,9 +57,11 @@ const STRINGS = {
     modeBulk: 'Bulk refine',
     bulkStockTitle: 'Raw stock',
     clearStock: 'Clear stock',
-    bulkNote: 'Enter what you have gathered. Each resource type refines up to its highest owned tier.',
+    bulkNote:
+      'Enter everything you have gathered — enchanted raws included. Each type and grade climbs to its highest owned tier; stone rocks of any grade feed plain blocks.',
     bulkEmptyTitle: 'No stock entered',
-    bulkEmptyText: 'Fill in the raw resources you own — the tool will plan the climb to the highest tier you have for each type.',
+    bulkEmptyText:
+      'Fill in the raw resources you own — the tool will plan the climb to the highest tier you have for each type and grade.',
     bulkPlanTitle: 'Planned output',
     ariaOwned: 'How many {name} you already have',
   },
@@ -77,6 +80,7 @@ const STRINGS = {
     enchant1: '.1 Peu commun',
     enchant2: '.2 Rare',
     enchant3: '.3 Exceptionnel',
+    enchant4: '.4 Parfait',
     stoneHint:
       "Les blocs de pierre ne peuvent pas être enchantés — ce choix porte sur le grade de roche raffinée, qui donne ×2 / ×4 / ×8 blocs.",
     labelQuantity: 'Quantité voulue',
@@ -108,9 +112,11 @@ const STRINGS = {
     modeBulk: 'Raffinage en lot',
     bulkStockTitle: 'Stock brut',
     clearStock: 'Vider le stock',
-    bulkNote: "Indiquez ce que vous avez récolté. Chaque type de ressource raffine jusqu'au plus haut niveau possédé.",
+    bulkNote:
+      "Indiquez tout ce que vous avez récolté — ressources enchantées comprises. Chaque type et chaque grade monte jusqu'au plus haut niveau possédé ; les roches de pierre de tout grade alimentent les blocs simples.",
     bulkEmptyTitle: 'Aucun stock saisi',
-    bulkEmptyText: "Renseignez les ressources brutes que vous possédez — l'outil planifiera la montée au niveau maximal pour chaque type.",
+    bulkEmptyText:
+      "Renseignez les ressources brutes que vous possédez — l'outil planifiera la montée au niveau maximal pour chaque type et chaque grade.",
     bulkPlanTitle: 'Production prévue',
     ariaOwned: 'Combien de {name} avez-vous déjà',
   },

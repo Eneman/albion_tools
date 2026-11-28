@@ -882,44 +882,82 @@ a {
 }
 
 /* ---------- Bulk view ---------- */
-.bulk-rows {
-  display: grid;
-  gap: 14px;
+/* Block container: the header and each line are grids in their own right and
+ * share the same template, so every column stays aligned. Block flow is what
+ * lets the tier header be sticky across the whole stock — a sticky grid item
+ * is pinned only inside its own row, which would scroll away at once. */
+.bulk-grid {
+  display: block;
 }
 
-.bulk-row {
+.bulk-head,
+.bulk-line {
   display: grid;
-  grid-template-columns: 90px 1fr;
-  gap: 12px;
-  align-items: start;
+  grid-template-columns: 42px repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
 }
 
-.bulk-type {
-  padding-top: 4px;
+/* Tier header stays put while the raw stock scrolls beneath it. */
+.bulk-head {
+  position: sticky;
+  /* Clears the sticky site header: 60px + 1px border. The header only hides
+     at ≤720px, where the site header shrinks to 54px — so one value fits. */
+  top: 61px;
+  z-index: 20;
+  margin-bottom: 12px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.bulk-group + .bulk-group {
+  margin-top: 12px;
+}
+
+.bulk-head span {
+  text-align: center;
+  font-size: 0.7rem;
   font-weight: 600;
-  font-size: 0.88rem;
+  letter-spacing: 0.06em;
   color: var(--text-dim);
 }
 
-.bulk-cells {
+.bulk-group {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
   gap: 8px;
+}
+
+.bulk-group-name {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.bulk-grade {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
 }
 
 .bulk-cell {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .bulk-cell .field-label {
+  display: none; /* desktop: the header row labels the tiers */
   font-size: 0.68rem;
+  text-align: center;
 }
 
-.bulk-cell .num-input {
+.bulk-cell .text-input {
   width: 100%;
-  padding: 8px 10px;
+  /* Left padding cancels the stepper gutter so the number stays centred. */
+  padding: 8px 34px 8px 17px;
   text-align: center;
 }
 
@@ -955,24 +993,37 @@ a {
 
 /* Responsive bulk */
 @media (max-width: 720px) {
-  .bulk-row {
-    grid-template-columns: 1fr;
-    gap: 6px;
+  /* No room for the tier header row: each cell shows its own tier label
+     and the impossible T2/T3 enchanted cells drop out of the flow. */
+  .bulk-head {
+    display: none;
   }
 
-  .bulk-cells {
-    grid-template-columns: repeat(4, 1fr);
+  .bulk-cell .field-label {
+    display: block;
+  }
+
+  .bulk-cell.is-empty {
+    display: none;
+  }
+
+  .bulk-line {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .bulk-grade {
+    grid-column: 1 / -1;
   }
 }
 
 @media (max-width: 520px) {
-  .bulk-cells {
-    grid-template-columns: repeat(3, 1fr);
+  .bulk-line {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 420px) {
-  .bulk-cells {
-    grid-template-columns: repeat(2, 1fr);
+  .bulk-line {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
